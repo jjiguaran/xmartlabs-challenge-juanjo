@@ -1,5 +1,6 @@
 import argparse
 import asyncio
+import json
 import logging
 import os
 import sys
@@ -93,7 +94,34 @@ def process_pdf(pdf_path: str, vectorstore_path: str = "vector_store"):
         raise e
 
 
-def run_interactive_chat(vectorstore_path: Optional[str] = None):
+def select_role() -> dict:
+    """Load available roles from prompts/roles.json and let the user pick one."""
+    roles_path = Path(__file__).parent / "prompts" / "roles.json"
+    with open(roles_path) as f:
+        roles_data = json.load(f)
+
+    roles = roles_data["roles"]
+
+    print("\n🎭 Available roles:\n")
+    for i, role in enumerate(roles, start=1):
+        print(f"  {i}. {role['title']}")
+
+    print()
+    while True:
+        try:
+            choice = input(f"Select a role (1-{len(roles)}): ").strip()
+            idx = int(choice) - 1
+            if 0 <= idx < len(roles):
+                selected = roles[idx]["title"]
+                print(f"✅ Selected role: {selected}\n")
+                return roles[idx]
+            else:
+                print(f"❌ Please enter a number between 1 and {len(roles)}.")
+        except (ValueError, EOFError):
+            print("❌ Invalid input. Please enter a number.")
+
+
+def run_interactive_chat(vectorstore_path: Optional[str] = None, role_name: Optional[str] = None, initial_message: Optional[str] = None):
 
     async def chat_main():
         try:
@@ -102,7 +130,7 @@ def run_interactive_chat(vectorstore_path: Optional[str] = None):
             client = RAGMCPClient(vectorstore_path=vectorstore_path)
 
             async with client:
-                chat_ui = RAGMCPChatUI(client)
+                chat_ui = RAGMCPChatUI(client, role_name=role_name, initial_message=initial_message)
                 await chat_ui.run_interactive_chat()
         except KeyboardInterrupt:
             logger.debug("Chat interrupted by user")
@@ -159,7 +187,14 @@ def main():
         logger.info("Debug mode enabled")
 
     if args.command == "chat":
-        run_interactive_chat(getattr(args, "vectorstore_path", None))
+        selected_role = select_role()
+        role_name = selected_role["title"]
+        initial_message = selected_role.get("initial_message", "")
+        run_interactive_chat(
+            getattr(args, "vectorstore_path", None),
+            role_name=role_name,
+            initial_message=initial_message,
+        )
     elif args.command == "eval":
         run_evaluation()
     elif args.command == "process-pdf":

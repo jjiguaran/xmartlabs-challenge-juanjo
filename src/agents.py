@@ -1,4 +1,6 @@
+import json
 import logging
+from pathlib import Path
 from typing import List, Tuple, Literal
 
 from transformers.pipelines import pipeline as hf_pipeline
@@ -7,6 +9,12 @@ from src.config import EARLY_STOPPING, GEN_MODEL, MAX_NEW_TOKENS, NUM_BEAMS
 from src.rag import BaseRAGPipeline
 
 logger = logging.getLogger(__name__)
+
+# Load role prompts from prompts/roles.json
+_ROLES_PATH = Path(__file__).parent / "prompts" / "roles.json"
+with open(_ROLES_PATH) as _f:
+    _ROLES_DATA = json.load(_f)
+SYSTEM_PROMPT = _ROLES_DATA["roles"][0]["prompt"]
 
 
 class BaseAgent:
@@ -55,12 +63,6 @@ class BaseAgent:
 
 
 class RAGAgent(BaseAgent):
-    SYSTEM_PROMPT = (
-        "You are an advanced AI aviation expert with expertise in all areas of flight, aircraft systems, and aviation regulations. "
-        "You engage in thoughtful conversations about aviation, using chain-of-thought reasoning. "
-        "For each question, first analyze the provided context, think step by step, then provide a clear answer. "
-        "Consider previous conversation context when relevant. Be accurate, educational, and engaging."
-    )
 
     CONTEXT_TEMPLATE = (
         "Previous conversation context:\n{chat_history}\n\n"
@@ -69,8 +71,21 @@ class RAGAgent(BaseAgent):
         "Answer:"
     )
 
-    def __init__(self, rag_pipeline: BaseRAGPipeline):
-        super().__init__(self.SYSTEM_PROMPT)
+    def __init__(self, rag_pipeline: BaseRAGPipeline, role_name: str | None = None):
+        if role_name:
+            for role in _ROLES_DATA["roles"]:
+                if role["title"] == role_name:
+                    prompt = role["prompt"]
+                    break
+            else:
+                logger.warning(
+                    "Role '%s' not found in roles.json. Using default prompt.",
+                    role_name,
+                )
+                prompt = SYSTEM_PROMPT
+        else:
+            prompt = SYSTEM_PROMPT
+        super().__init__(prompt)
         self.rag = rag_pipeline
 
     def _format_chat_history(self) -> str:

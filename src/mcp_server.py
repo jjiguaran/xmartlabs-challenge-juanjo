@@ -160,13 +160,17 @@ class RAGMCPServer:
             ),
             Tool(
                 name="start_chat_session",
-                description="Start a new interactive chat session",
+                description="Start a new interactive chat session (optionally with a specific role)",
                 inputSchema={
                     "type": "object",
                     "properties": {
                         "session_id": {
                             "type": "string",
                             "description": "Optional session ID, if not provided a new one will be generated",
+                        },
+                        "role_name": {
+                            "type": "string",
+                            "description": "The role to use for this session (e.g. Aviation Expert)",
                         },
                     },
                 },
@@ -222,7 +226,7 @@ class RAGMCPServer:
 
                 session_id = arguments.get("session_id") or str(uuid.uuid4())
 
-                agent = RAGAgent(rag_pipeline=self.rag_pipeline)
+                agent = RAGAgent(rag_pipeline=self.rag_pipeline, role_name=arguments.get("role_name"))
                 self.chat_sessions[session_id] = {
                     "agent": agent,
                     "created_at": asyncio.get_event_loop().time(),

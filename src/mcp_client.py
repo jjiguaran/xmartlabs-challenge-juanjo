@@ -194,7 +194,7 @@ class RAGMCPClient:
             logger.error(f"Error during health check: {e}")
             return {"error": True, "message": str(e)}
 
-    async def start_chat_session(self, session_id: Optional[str] = None):
+    async def start_chat_session(self, session_id: Optional[str] = None, role_name: Optional[str] = None):
         if not self._session:
             raise RuntimeError("Client not initialized.")
 
@@ -204,6 +204,8 @@ class RAGMCPClient:
             args = {}
             if session_id:
                 args["session_id"] = session_id
+            if role_name:
+                args["role_name"] = role_name
 
             result = await self._session.call_tool(
                 name="start_chat_session", arguments=args
@@ -306,13 +308,19 @@ class RAGMCPClient:
 
 class RAGMCPChatUI:
 
-    def __init__(self, client: RAGMCPClient):
+    def __init__(self, client: RAGMCPClient, role_name: Optional[str] = None, initial_message: Optional[str] = None):
         self.client = client
         self.session_id = None
+        self.role_name = role_name
+        self.initial_message = initial_message
 
     async def run_interactive_chat(self):
-        print("✈️ Welcome to the Aviation RAG Chat!")
-        print("Ask me anything about aviation, or type 'quit' to exit.")
+        role_display = f" ({self.role_name})" if self.role_name else ""
+        print(f"✈️ Welcome to the Aviation RAG Chat{role_display}!")
+        if self.initial_message:
+            print(self.initial_message)
+        else:
+            print("Ask me anything, or type 'quit' to exit.")
         print(
             "Type 'health' to check server status, 'history' to view conversation history."
         )
@@ -324,7 +332,7 @@ class RAGMCPChatUI:
             if logger.isEnabledFor(logging.DEBUG):
                 print("🔧 Starting chat session...")
 
-            result = await self.client.start_chat_session()
+            result = await self.client.start_chat_session(role_name=self.role_name)
 
             if result["error"]:
                 logger.error(f"Failed to start chat session: {result['message']}")
