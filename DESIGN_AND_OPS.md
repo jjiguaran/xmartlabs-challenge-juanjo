@@ -52,7 +52,6 @@ Adding a new role requires only a new entry in `roles.json` — no code changes.
 
 ## Part 3: Production Roadmap
 
-### Scalability
 
 | Priority | Task | Component | Operational / ML Value |
 |---|---|---|---|
