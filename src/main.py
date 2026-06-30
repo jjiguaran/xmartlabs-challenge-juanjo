@@ -60,9 +60,13 @@ def run_evaluation():
     try:
         from src.evaluation import RAGEvaluator
 
-        logger.info("TODO: Implement evaluation suite")
+        logger.info("Running interactive recall evaluation from ground truth...")
+        evaluator = RAGEvaluator()
+        evaluator.run_interactive_evaluation(k=5)
     except ImportError:
-        logger.info("TODO: Implement evaluation suite")
+        msg = "Could not import RAGEvaluator. Ensure src.evaluation is available."
+        logger.error(msg)
+        print(msg)
 
 
 def process_pdf(pdf_path: str, vectorstore_path: str = "vector_store"):
